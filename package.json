@@ -1,0 +1,33 @@
+{
+  "name": "state-emitter",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "scripts": {
+    "precommit": "npm test",
+    "test": "tsc && ava"
+  },
+  "ava": {
+    "files": [
+      "dist/test/*.js"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://rh.dev.spotwa.re/webteam/state-emitter.git"
+  },
+  "author": "Alexander Vlasov <avlasov@spotware.com>",
+  "license": "ISC",
+  "dependencies": {
+    "lodash.assign": "4.2.0",
+    "lodash.isequal": "4.5.0",
+    "lodash.isplainobject": "4.0.6",
+    "rxjs": "^5.1.1"
+  },
+  "devDependencies": {
+    "ava": "0.18.1",
+    "husky": "0.13.1",
+    "typescript": "2.1.6"
+  }
+}
