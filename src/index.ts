@@ -7,6 +7,7 @@ import {Subscription} from 'rxjs/Subscription';
 import {PartialObserver} from 'rxjs/Observer';
 import {CallbackStack} from './callback_stack';
 import 'rxjs/add/operator/publishReplay';
+import 'rxjs/add/operator/filter';
 
 const emitterStack = new CallbackStack();
 
@@ -90,5 +91,105 @@ export class StateEmitter<T> {
     public complete(): void {
         this.completed = true;
         this.subject$.complete();
+    }
+
+    public whenEqual(expectedState: T,
+                     callback: (newState?: T, oldState?: T) => void): Subscription {
+        return this.asObservable()
+            .filter(state => isEqual(state, expectedState))
+            .subscribe(state => {
+                callback(state, this.previous());
+            })
+            ;
+    }
+
+    public onceEqual(expectedState: T,
+                     callback: (newState?: T, oldState?: T) => void): Subscription {
+        const self = this;
+        return this.asObservable()
+            .filter(state => isEqual(state, expectedState))
+            .subscribe(function (state) { // tslint:disable-line:only-arrow-functions
+                this.unsubscribe(); // tslint:disable-line:no-invalid-this
+                callback(state, self.previous());
+            })
+            ;
+    }
+
+    public onSubsetMatch<U extends Partial<T>>(subsetToMatch: U,
+                         callback: (newState?: T, oldState?: T) => void): Subscription {
+        let neverRan = true;
+        return this.asObservable()
+            .filter(newState => {
+                const oldState = this.previous();
+                const newStateMatched = newState !== undefined
+                    && Object.keys(subsetToMatch)
+                        .every(prop => isEqual(subsetToMatch[prop], newState[prop]))
+                ;
+                if (newStateMatched) {
+                    if (neverRan) {
+                        neverRan = false;
+                        return true;
+                    } else {
+                        const oldStateNotMatched = oldState === undefined
+                            || Object.keys(subsetToMatch)
+                                .some(prop => !isEqual(subsetToMatch[prop], oldState[prop]))
+                        ;
+                        if (oldStateNotMatched) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            })
+            .subscribe(state => {
+                callback(state, this.previous());
+            })
+            ;
+    }
+
+    public onceExtendsBy<U extends Partial<T>>(expectedStateSubset: U,
+                                               callback: (newState?: T, oldState?: T) => void): Subscription {
+        const self = this;
+        return this.asObservable()
+            .filter(state => {
+                return state !== undefined &&
+                    Object.keys(expectedStateSubset)
+                        .every(prop => {
+                            return isEqual(expectedStateSubset[prop], state[prop]);
+                        })
+                    ;
+            })
+            .subscribe(function (state) { // tslint:disable-line:only-arrow-functions
+                this.unsubscribe(); // tslint:disable-line:no-invalid-this
+                callback(state, self.previous());
+            })
+            ;
+    }
+
+    public callOnEvalOnce(evalFn: (evalValue?: T) => boolean): Subscription {
+        return this.asObservable()
+            .filter(state => {
+                if (evalFn(state)) {
+                    return true;
+                }
+            })
+            .subscribe(function () { // tslint:disable-line:only-arrow-functions
+                this.unsubscribe(); // tslint:disable-line:no-invalid-this
+            })
+            ;
+    }
+
+    public callOnEval(evalFn: (evalValue?: T) => boolean,
+                      callback: (value?: T, previous?: T) => void): Subscription {
+        return this.asObservable()
+            .filter(state => {
+                if (evalFn(state)) {
+                    return true;
+                }
+            })
+            .subscribe(state => {
+                callback(state, this.previous())
+            })
+            ;
     }
 }

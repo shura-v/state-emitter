@@ -5,6 +5,7 @@ var isPlainObject = require('lodash.isplainobject');
 var Subject_1 = require("rxjs/Subject");
 var callback_stack_1 = require("./callback_stack");
 require("rxjs/add/operator/publishReplay");
+require("rxjs/add/operator/filter");
 var emitterStack = new callback_stack_1.CallbackStack();
 var StateEmitter = (function () {
     function StateEmitter(initialValue) {
@@ -75,6 +76,90 @@ var StateEmitter = (function () {
     StateEmitter.prototype.complete = function () {
         this.completed = true;
         this.subject$.complete();
+    };
+    StateEmitter.prototype.whenEqual = function (expectedState, callback) {
+        var _this = this;
+        return this.asObservable()
+            .filter(function (state) { return isEqual(state, expectedState); })
+            .subscribe(function (state) {
+            callback(state, _this.previous());
+        });
+    };
+    StateEmitter.prototype.onceEqual = function (expectedState, callback) {
+        var self = this;
+        return this.asObservable()
+            .filter(function (state) { return isEqual(state, expectedState); })
+            .subscribe(function (state) {
+            this.unsubscribe();
+            callback(state, self.previous());
+        });
+    };
+    StateEmitter.prototype.onSubsetMatch = function (subsetToMatch, callback) {
+        var _this = this;
+        var neverRan = true;
+        return this.asObservable()
+            .filter(function (newState) {
+            var oldState = _this.previous();
+            var newStateMatched = newState !== undefined
+                && Object.keys(subsetToMatch)
+                    .every(function (prop) { return isEqual(subsetToMatch[prop], newState[prop]); });
+            if (newStateMatched) {
+                if (neverRan) {
+                    neverRan = false;
+                    return true;
+                }
+                else {
+                    var oldStateNotMatched = oldState === undefined
+                        || Object.keys(subsetToMatch)
+                            .some(function (prop) { return !isEqual(subsetToMatch[prop], oldState[prop]); });
+                    if (oldStateNotMatched) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        })
+            .subscribe(function (state) {
+            callback(state, _this.previous());
+        });
+    };
+    StateEmitter.prototype.onceExtendsBy = function (expectedStateSubset, callback) {
+        var self = this;
+        return this.asObservable()
+            .filter(function (state) {
+            return state !== undefined &&
+                Object.keys(expectedStateSubset)
+                    .every(function (prop) {
+                    return isEqual(expectedStateSubset[prop], state[prop]);
+                });
+        })
+            .subscribe(function (state) {
+            this.unsubscribe();
+            callback(state, self.previous());
+        });
+    };
+    StateEmitter.prototype.callOnEvalOnce = function (evalFn) {
+        return this.asObservable()
+            .filter(function (state) {
+            if (evalFn(state)) {
+                return true;
+            }
+        })
+            .subscribe(function () {
+            this.unsubscribe();
+        });
+    };
+    StateEmitter.prototype.callOnEval = function (evalFn, callback) {
+        var _this = this;
+        return this.asObservable()
+            .filter(function (state) {
+            if (evalFn(state)) {
+                return true;
+            }
+        })
+            .subscribe(function (state) {
+            callback(state, _this.previous());
+        });
     };
     return StateEmitter;
 }());
