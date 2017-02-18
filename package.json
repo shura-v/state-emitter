@@ -1,23 +1,26 @@
 {
   "name": "state-emitter",
-  "version": "0.0.1",
-  "description": "",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
+  "version": "1.0.0",
+  "description": "Reactive emitter",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
   "scripts": {
+    "build": "tsc",
     "precommit": "npm test",
-    "test": "tsc && ava"
+    "test": "npm run build && nyc ava",
+    "watch": "npm run build && ava --watch",
+    "start": "npm run watch"
   },
   "ava": {
     "files": [
-      "dist/test/*.js"
+      "test/**.js"
     ]
   },
   "repository": {
     "type": "git",
-    "url": "http://rh.dev.spotwa.re/webteam/state-emitter.git"
+    "url": "https://github.com/shura-v/state-emitter"
   },
-  "author": "Alexander Vlasov <avlasov@spotware.com>",
+  "author": "Alexander Vlasov <superkoder@gmail.com>",
   "license": "ISC",
   "dependencies": {
     "lodash.assign": "4.2.0",
@@ -28,6 +31,7 @@
   "devDependencies": {
     "ava": "0.18.1",
     "husky": "0.13.1",
+    "nyc": "10.1.2",
     "typescript": "2.1.6"
   }
 }
