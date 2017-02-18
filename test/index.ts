@@ -1,9 +1,9 @@
-"use strict";
-var __1 = require("..");
-var ava_1 = require("ava");
-ava_1.default('should not emit new values if completed', function (t) {
-    var se = new __1.StateEmitter(0);
-    se.subscribe(function (x) {
+import {StateEmitter} from "../lib";
+import test from 'ava';
+
+test('should not emit new values if completed', (t) => {
+    const se = new StateEmitter<number>(0);
+    se.subscribe((x) => {
         t.true(x <= 3);
     });
     se.next(1);
@@ -12,57 +12,74 @@ ava_1.default('should not emit new values if completed', function (t) {
     se.complete();
     se.next(4);
     se.next(5);
-    se.subscribe(function (x) {
+    se.subscribe((x) => {
         t.true(x === 3);
     });
 });
-var stateEmitter;
-ava_1.default.beforeEach(function () {
-    stateEmitter = new __1.StateEmitter();
+
+let stateEmitter: StateEmitter<boolean>;
+
+test.beforeEach(() => {
+    stateEmitter = new StateEmitter<boolean>();
     stateEmitter.next(false);
 });
-ava_1.default('Should call function on true', function (t) {
-    stateEmitter.whenEqual(true, function () {
+
+test('Should call function on true', (t) => {
+    stateEmitter.whenEqual(true, () => {
         t.pass();
     });
     stateEmitter.next(true);
 });
-ava_1.default('Should not call function on false', function (t) {
-    stateEmitter.whenEqual(true, function () {
+
+test('Should not call function on false', (t) => {
+    stateEmitter.whenEqual(true, () => {
         t.fail();
     });
     stateEmitter.next(false);
 });
-ava_1.default('Should call function on true three times given multiple state updates', function (t) {
-    var counter = 0;
-    stateEmitter.whenEqual(true, function () {
+
+test('Should call function on true three times given multiple state updates', (t) => {
+    let counter = 0;
+    stateEmitter.whenEqual(true, () => {
         counter += 1;
     });
+    //First state update to true
     stateEmitter.next(true);
     stateEmitter.next(false);
+    //Second state update to true
     stateEmitter.next(true);
     stateEmitter.next(true);
     stateEmitter.next(false);
     stateEmitter.next(false);
     stateEmitter.next(false);
+    //Third state update to true
     stateEmitter.next(true);
     stateEmitter.next(true);
     t.is(counter, 3);
 });
-ava_1.default('Should call function only once on expected state change', function (t) {
-    var counter = 0;
-    stateEmitter.onceEqual(true, function () {
+
+test('Should call function only once on expected state change', (t) => {
+    let counter = 0;
+    stateEmitter.onceEqual(true, () => {
         counter += 1;
     });
+    //First state update to true
     stateEmitter.next(true);
     stateEmitter.next(false);
+    //Second state update to true
     stateEmitter.next(true);
     stateEmitter.next(false);
     t.is(counter, 1);
 });
-ava_1.default('Should call function when connected state becomes true', function (t) {
-    var counter = 0;
-    var stateEmitter = new __1.StateEmitter({
+
+interface IConnectedState {
+    connected: boolean,
+    reason: number
+}
+
+test('Should call function when connected state becomes true', (t) => {
+    let counter = 0;
+    const stateEmitter = new StateEmitter<IConnectedState>({
         connected: true,
         reason: 0
     });
@@ -80,7 +97,7 @@ ava_1.default('Should call function when connected state becomes true', function
     });
     stateEmitter.onSubsetMatch({
         connected: true
-    }, function () {
+    }, () => {
         counter += 1;
     });
     stateEmitter.next({
@@ -105,9 +122,10 @@ ava_1.default('Should call function when connected state becomes true', function
     });
     t.is(counter, 3);
 });
-ava_1.default('Should call function when connected state is true only once', function (t) {
-    var counter = 0;
-    var stateEmitter = new __1.StateEmitter();
+
+test('Should call function when connected state is true only once', (t) => {
+    let counter = 0;
+    const stateEmitter = new StateEmitter<IConnectedState>();
     stateEmitter.next({
         connected: true,
         reason: 2
@@ -116,7 +134,7 @@ ava_1.default('Should call function when connected state is true only once', fun
         connected: true,
         reason: 3
     });
-    stateEmitter.onceExtendsBy({ connected: true }, function () {
+    stateEmitter.onceExtendsBy({connected: true}, () => {
         counter += 1;
     });
     stateEmitter.next({

@@ -14,10 +14,10 @@
       "es2015",
       "es2015.promise"
     ],
-    "skipLibCheck": true,
-    "outDir": "dist/"
+    "skipLibCheck": true
   },
   "include": [
-    "src/**/*"
+    "lib/*",
+    "test/*"
   ]
 }
