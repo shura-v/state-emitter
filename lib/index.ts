@@ -1,6 +1,6 @@
-const assign = require('lodash.assign');
-const isEqual = require('lodash.isequal');
-const isPlainObject = require('lodash.isplainobject');
+import * as assign from 'lodash.assign';
+import * as isEqual from 'lodash.isequal';
+import * as isPlainObject from 'lodash.isplainobject';
 import {Observable} from 'rxjs/Observable';
 import {Subject} from 'rxjs/Subject';
 import {Subscription} from 'rxjs/Subscription';
