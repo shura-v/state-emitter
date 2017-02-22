@@ -1,6 +1,6 @@
 {
   "name": "state-emitter",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Reactive emitter",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -25,8 +25,7 @@
   "dependencies": {
     "lodash.assign": "4.2.0",
     "lodash.isequal": "4.5.0",
-    "lodash.isplainobject": "4.0.6",
-    "rxjs": "^5.1.1"
+    "lodash.isplainobject": "4.0.6"
   },
   "devDependencies": {
     "ava": "0.18.1",

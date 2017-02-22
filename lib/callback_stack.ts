@@ -11,13 +11,10 @@ export class CallbackStack {
 
     private run() {
         this.inProgress = true;
-        const stack = this.stack.slice();
-        this.stack = [];
-        stack.forEach(callback => callback());
-        this.inProgress = false;
-        if (this.stack.length) {
-            this.run();
+        while (this.stack.length > 0) {
+            this.stack.shift()();
         }
+        this.inProgress = false;
     }
 
     public clear(): void {

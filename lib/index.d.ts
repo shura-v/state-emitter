@@ -1,29 +1,28 @@
-import { Observable } from 'rxjs/Observable';
-import { Subscription } from 'rxjs/Subscription';
-import { PartialObserver } from 'rxjs/Observer';
-import 'rxjs/add/operator/publishReplay';
-import 'rxjs/add/operator/filter';
-export declare type StateEmitterCallback<T> = ((value: T, previousValue?: T) => void);
+export declare type StateEmitterCallback<T> = ((state: T, previousState?: T, subscription?: ISubscription) => void);
+export interface ISubscription {
+    unsubscribe(): void;
+    destroy(): void;
+}
 export declare class StateEmitter<T> {
-    private subject$;
-    private observable$;
+    private state;
+    private subscribersCounter;
+    private subscribers;
     private isSetOnce;
-    private previousValue;
-    private value;
+    private previousState;
     private completed;
-    constructor(initialValue?: T);
-    asObservable(): Observable<T>;
-    next(value: T): void;
+    constructor(state?: T);
+    next(state: T): void;
+    private notify();
     reset(): void;
     get(): T;
-    equal(value: T): boolean;
-    subscribe(observerOrNext?: PartialObserver<T> | StateEmitterCallback<T>, context?: Object): Subscription;
+    equal(state: T): boolean;
+    subscribe(callback: StateEmitterCallback<T>, context?: Object): ISubscription;
     previous(): T;
     complete(): void;
-    whenEqual(expectedState: T, callback: (newState?: T, oldState?: T) => void): Subscription;
-    onceEqual(expectedState: T, callback: (newState?: T, oldState?: T) => void): Subscription;
-    onSubsetMatch<U extends Partial<T>>(subsetToMatch: U, callback: (newState?: T, oldState?: T) => void): Subscription;
-    onceExtendsBy<U extends Partial<T>>(expectedStateSubset: U, callback: (newState?: T, oldState?: T) => void): Subscription;
-    callOnEvalOnce(evalFn: (evalValue?: T) => boolean): Subscription;
-    callOnEval(evalFn: (evalValue?: T) => boolean, callback: (value?: T, previous?: T) => void): Subscription;
+    whenEqual(expectedState: T, callback: StateEmitterCallback<T>): ISubscription;
+    onceEqual(expectedState: T, callback: StateEmitterCallback<T>): ISubscription;
+    onSubsetMatch<U extends Partial<T>>(subsetToMatch: U, callback: StateEmitterCallback<T>): ISubscription;
+    onceExtendsBy<U extends Partial<T>>(expectedStateSubset: U, callback: StateEmitterCallback<T>): ISubscription;
+    callOnEvalOnce(evalFn: (evalValue?: T) => boolean): ISubscription;
+    callOnEval(evalFn: (evalValue?: T) => boolean, callback: StateEmitterCallback<T>): ISubscription;
 }
