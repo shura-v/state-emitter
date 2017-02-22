@@ -154,9 +154,7 @@ export class StateEmitter<T> {
             .filter(state => {
                 return state !== undefined &&
                     Object.keys(expectedStateSubset)
-                        .every(prop => {
-                            return isEqual(expectedStateSubset[prop], state[prop]);
-                        })
+                        .every(prop => isEqual(expectedStateSubset[prop], state[prop]))
                     ;
             })
             .subscribe(function (state) { // tslint:disable-line:only-arrow-functions
@@ -168,11 +166,7 @@ export class StateEmitter<T> {
 
     public callOnEvalOnce(evalFn: (evalValue?: T) => boolean): Subscription {
         return this.asObservable()
-            .filter(state => {
-                if (evalFn(state)) {
-                    return true;
-                }
-            })
+            .filter(state => evalFn(state))
             .subscribe(function () { // tslint:disable-line:only-arrow-functions
                 this.unsubscribe(); // tslint:disable-line:no-invalid-this
             })
@@ -182,11 +176,7 @@ export class StateEmitter<T> {
     public callOnEval(evalFn: (evalValue?: T) => boolean,
                       callback: (value?: T, previous?: T) => void): Subscription {
         return this.asObservable()
-            .filter(state => {
-                if (evalFn(state)) {
-                    return true;
-                }
-            })
+            .filter(state => evalFn(state))
             .subscribe(state => {
                 callback(state, this.previous())
             })
