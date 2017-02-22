@@ -1,4 +1,3 @@
-import * as assign from 'lodash.assign';
 import * as isEqual from 'lodash.isequal';
 import * as isPlainObject from 'lodash.isplainobject';
 import {CallbackStack} from './callback_stack';
@@ -30,6 +29,9 @@ export class StateEmitter<T> {
     private completed = false;
 
     constructor(private state?: T) {
+        if (state !== undefined) {
+            this.isSetOnce = true;
+        }
     }
 
     public next(state: T): void {
@@ -44,14 +46,15 @@ export class StateEmitter<T> {
             return;
         }
         const newValue = arePlainObjects
-            ? assign({}, this.state, state)
+            ? {
+                ... this.state as Object,
+                ... state as Object
+            } as T
             : state;
         this.previousState = this.state;
         this.state = newValue;
-        if (changed) {
-            this.notify();
-            this.isSetOnce = true;
-        }
+        this.isSetOnce = true;
+        this.notify();
     }
 
     private notify() {
@@ -93,6 +96,7 @@ export class StateEmitter<T> {
                 }
             }
         };
+        this.subscribersCounter += 1;
         const unsubscribe = () => {
             subscriber.subscribed = false;
             delete this.subscribers[subscriber.id];

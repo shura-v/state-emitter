@@ -1,7 +1,6 @@
 export declare class CallbackStack {
-    private stack;
+    private readonly stack;
     private inProgress;
     add(callback: () => void): void;
     private run();
-    clear(): void;
 }

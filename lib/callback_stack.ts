@@ -1,5 +1,5 @@
 export class CallbackStack {
-    private stack: (() => void)[] = [];
+    private readonly stack: (() => void)[] = [];
     private inProgress: boolean = false;
 
     public add(callback: () => void): void {
@@ -15,9 +15,5 @@ export class CallbackStack {
             this.stack.shift()();
         }
         this.inProgress = false;
-    }
-
-    public clear(): void {
-        this.stack = [];
     }
 }
