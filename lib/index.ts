@@ -96,7 +96,6 @@ export class StateEmitter<T> {
                 }
             }
         };
-        this.subscribersCounter += 1;
         const unsubscribe = () => {
             subscriber.subscribed = false;
             delete this.subscribers[subscriber.id];
@@ -107,6 +106,8 @@ export class StateEmitter<T> {
         };
 
         this.subscribers[this.subscribersCounter] = subscriber;
+
+        this.subscribersCounter += 1;
         emitterStack.add(() => {
             subscriber.next();
         });
