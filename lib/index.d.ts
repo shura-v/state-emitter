@@ -6,6 +6,7 @@ export interface ISubscription {
 export interface IStateEmitterOptions {
     distinct?: boolean;
     cloneMergeObjectsOnNext?: boolean;
+    onComplete?: () => {};
 }
 export declare class StateEmitter<T> {
     private state;
@@ -16,6 +17,7 @@ export declare class StateEmitter<T> {
     private completed;
     private distinct;
     private cloneMergeObjectsOnNext;
+    private onComplete;
     constructor(state?: T, options?: IStateEmitterOptions);
     next(state: T): void;
     private notify();

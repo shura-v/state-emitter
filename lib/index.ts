@@ -22,6 +22,7 @@ interface ISubscriber<T> {
 export interface IStateEmitterOptions {
     distinct?: boolean,
     cloneMergeObjectsOnNext?: boolean;
+    onComplete?: () => {};
 }
 
 export class StateEmitter<T> {
@@ -35,6 +36,7 @@ export class StateEmitter<T> {
 
     private distinct: boolean;
     private cloneMergeObjectsOnNext: boolean;
+    private onComplete: () => {};
 
     constructor(private state?: T, options?: IStateEmitterOptions) {
         if (state !== undefined) {
@@ -43,6 +45,10 @@ export class StateEmitter<T> {
      
         this.distinct = (options && options.distinct !== undefined) ? options.distinct : true;
         this.cloneMergeObjectsOnNext = (options && options.cloneMergeObjectsOnNext !== undefined) ? options.cloneMergeObjectsOnNext : true;
+
+        if (options && options.onComplete) {
+            this.onComplete = options.onComplete;
+        }
     }
 
     public next(state: T): void {
@@ -143,8 +149,17 @@ export class StateEmitter<T> {
     }
 
     public complete(): void {
-        this.completed = true;
-        this.subscribers = {};
+        if (!this.completed) {
+            this.completed = true;
+            this.subscribers = {};
+            
+            if (this.onComplete) {
+                const onComplete = this.onComplete;
+                delete this.onComplete;
+
+                onComplete.call(this);
+            }  
+        }
     }
 
     public whenEqual(expectedState: T,

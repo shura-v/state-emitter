@@ -36,6 +36,17 @@ test('should emit merge object values by default, and dont merge those if cloneM
     });
 });
 
+test('should call onComplete callback if present', (t) => {
+    let completeCount = 0;
+    const se = new StateEmitter<number>(0, {
+        onComplete: () => completeCount++
+    });
+    
+    se.complete();
+    se.complete();
+    t.is(1, completeCount);
+});
+
 test('should emit new values to 2 subscribers', (t) => {
     const se = new StateEmitter<number>(0);
     let counter = 0;
