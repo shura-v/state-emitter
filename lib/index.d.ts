@@ -3,6 +3,10 @@ export interface ISubscription {
     unsubscribe(): void;
     destroy(): void;
 }
+export interface IStateEmitterOptions {
+    distinct?: boolean;
+    cloneMergeObjectsOnNext?: boolean;
+}
 export declare class StateEmitter<T> {
     private state;
     private subscribersCounter;
@@ -10,7 +14,9 @@ export declare class StateEmitter<T> {
     private isSetOnce;
     private previousState;
     private completed;
-    constructor(state?: T);
+    private distinct;
+    private cloneMergeObjectsOnNext;
+    constructor(state?: T, options?: IStateEmitterOptions);
     next(state: T): void;
     private notify();
     reset(): void;
