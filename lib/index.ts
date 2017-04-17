@@ -19,6 +19,12 @@ interface ISubscriber<T> {
     next: StateEmitterCallback<T>,
 }
 
+export interface IStateEmitterOptions {
+    distinct?: boolean,
+    cloneMergeObjectsOnNext?: boolean;
+    onComplete?: () => {};
+}
+
 export class StateEmitter<T> {
     private subscribersCounter = 0;
     private subscribers: {
@@ -28,9 +34,20 @@ export class StateEmitter<T> {
     private previousState: T;
     private completed = false;
 
-    constructor(private state?: T) {
+    private distinct: boolean;
+    private cloneMergeObjectsOnNext: boolean;
+    private onComplete: () => {};
+
+    constructor(private state?: T, options?: IStateEmitterOptions) {
         if (state !== undefined) {
             this.isSetOnce = true;
+        }
+     
+        this.distinct = (options && options.distinct !== undefined) ? options.distinct : true;
+        this.cloneMergeObjectsOnNext = (options && options.cloneMergeObjectsOnNext !== undefined) ? options.cloneMergeObjectsOnNext : true;
+
+        if (options && options.onComplete) {
+            this.onComplete = options.onComplete;
         }
     }
 
@@ -38,14 +55,19 @@ export class StateEmitter<T> {
         if (this.completed) {
             return;
         }
-        const arePlainObjects = isPlainObject(state) && isPlainObject(this.state);
-        const changed = arePlainObjects
-            ? !isEqual(this.state, state)
-            : this.state !== state;
-        if (!changed) {
-            return;
+
+        const arePlainObjects = (this.distinct || this.cloneMergeObjectsOnNext) && isPlainObject(state) && isPlainObject(this.state);
+
+        if (this.distinct) {
+            const changed = arePlainObjects
+                ? !isEqual(this.state, state)
+                : this.state !== state;
+            if (!changed) {
+                return;
+            }
         }
-        const newValue = arePlainObjects
+
+        const newValue = (this.cloneMergeObjectsOnNext && arePlainObjects)
             ? {
                 ... this.state as Object,
                 ... state as Object
@@ -91,7 +113,12 @@ export class StateEmitter<T> {
             id: this.subscribersCounter,
             subscribed: true,
             next: () => {
-                if (this.isSetOnce && subscriber.subscribed) {
+                const shouldCall = this.isSetOnce && subscriber.subscribed;
+                if (this.completed) {
+                    unsubscribe();
+                }
+
+                if (shouldCall) {
                     callback.call(context, this.state, this.previousState, subscription);
                 }
             }
@@ -122,7 +149,17 @@ export class StateEmitter<T> {
     }
 
     public complete(): void {
-        this.completed = true;
+        if (!this.completed) {
+            this.completed = true;
+            this.subscribers = {};
+            
+            if (this.onComplete) {
+                const onComplete = this.onComplete;
+                delete this.onComplete;
+
+                onComplete.call(this);
+            }  
+        }
     }
 
     public whenEqual(expectedState: T,

@@ -1,13 +1,50 @@
 import {StateEmitter} from "../lib";
 import test from 'ava';
 
-test('should emit new values once subscribed', (t) => {
-    const se = new StateEmitter<number>(0);
-    t.plan(1);
-    se.subscribe((x) => {
-        t.is(x, 0);
+test('should emit new values once subscribed, and should not emit unchanged values if distinct is not false', (t) => {
+    const allOptions = [undefined, {distinct: true}, {distinct: false}];
+    const callCounts = [1, 1, 2];
+
+    allOptions.forEach((options, idx) => {
+        const se = new StateEmitter<number>(0, options);
+        let callCount = 0;
+        se.subscribe((x) => {
+            t.is(x, 0);
+            callCount++;
+        });
+        se.next(0);
+        t.is(callCount, callCounts[idx]);
     });
-    se.next(0);
+});
+
+test('should emit merge object values by default, and dont merge those if cloneMergeObjectsOnNext=false', (t) => {
+    type IObj = {x?: boolean, y?: boolean}
+
+    const allOptions = [undefined, {cloneMergeObjectsOnNext: true}, {cloneMergeObjectsOnNext: false}];
+    const equalVals = [false, false, true];
+
+    allOptions.forEach((options, idx) => {
+        const objX = {x: true};
+        const objY = {y: true};
+
+        const se = new StateEmitter<IObj>(objX, options);
+        t.is(true, se.get() === objX);
+
+        se.next(objY);
+
+        t.is(se.get() === objY, equalVals[idx]);
+    });
+});
+
+test('should call onComplete callback if present', (t) => {
+    let completeCount = 0;
+    const se = new StateEmitter<number>(0, {
+        onComplete: () => completeCount++
+    });
+    
+    se.complete();
+    se.complete();
+    t.is(1, completeCount);
 });
 
 test('should emit new values to 2 subscribers', (t) => {
