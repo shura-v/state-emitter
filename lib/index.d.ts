@@ -19,8 +19,9 @@ export declare class StateEmitter<T> {
     private cloneMergeObjectsOnNext;
     private onComplete;
     constructor(state?: T, options?: IStateEmitterOptions);
+    private isChanged(newState, oldState);
     next(state: T): void;
-    private notify();
+    private notifyAll();
     reset(): void;
     get(): T;
     equal(state: T): boolean;

@@ -16,7 +16,7 @@ export interface ISubscription {
 interface ISubscriber<T> {
     subscribed: boolean,
     id: number,
-    next: StateEmitterCallback<T>,
+    notify: StateEmitterCallback<T>
 }
 
 export interface IStateEmitterOptions {
@@ -36,19 +36,31 @@ export class StateEmitter<T> {
 
     private distinct: boolean;
     private cloneMergeObjectsOnNext: boolean;
-    private onComplete: () => {};
+    private onComplete: () => void;
 
-    constructor(private state?: T, options?: IStateEmitterOptions) {
+    constructor(private state?: T, options: IStateEmitterOptions = {}) {
         if (state !== undefined) {
             this.isSetOnce = true;
         }
-     
-        this.distinct = (options && options.distinct !== undefined) ? options.distinct : true;
-        this.cloneMergeObjectsOnNext = (options && options.cloneMergeObjectsOnNext !== undefined) ? options.cloneMergeObjectsOnNext : true;
 
-        if (options && options.onComplete) {
-            this.onComplete = options.onComplete;
-        }
+        const {distinct = true} = options;
+        const {cloneMergeObjectsOnNext = true} = options;
+
+        this.distinct = distinct;
+        this.cloneMergeObjectsOnNext = cloneMergeObjectsOnNext;
+        this.onComplete = options.onComplete;
+    }
+
+    private isChanged(newState: T, oldState: T): boolean {
+        const arePlainObjects = (this.distinct || this.cloneMergeObjectsOnNext)
+            && isPlainObject(newState)
+            && isPlainObject(oldState);
+
+        const changed = arePlainObjects
+            ? !isEqual(newState, oldState)
+            : newState !== oldState;
+
+        return !this.distinct || changed;
     }
 
     public next(state: T): void {
@@ -56,18 +68,15 @@ export class StateEmitter<T> {
             return;
         }
 
-        const arePlainObjects = (this.distinct || this.cloneMergeObjectsOnNext) && isPlainObject(state) && isPlainObject(this.state);
-
-        if (this.distinct) {
-            const changed = arePlainObjects
-                ? !isEqual(this.state, state)
-                : this.state !== state;
-            if (!changed) {
-                return;
-            }
+        if (!this.isChanged(this.state, state)) {
+            return;
         }
 
-        const newValue = (this.cloneMergeObjectsOnNext && arePlainObjects)
+        const arePlainObjects = (this.distinct || this.cloneMergeObjectsOnNext)
+            && isPlainObject(state)
+            && isPlainObject(this.state);
+
+        const newValue = this.cloneMergeObjectsOnNext && arePlainObjects
             ? {
                 ... this.state as Object,
                 ... state as Object
@@ -76,16 +85,16 @@ export class StateEmitter<T> {
         this.previousState = this.state;
         this.state = newValue;
         this.isSetOnce = true;
-        this.notify();
+        this.notifyAll();
     }
 
-    private notify() {
+    private notifyAll() {
         const {state, previousState, subscribers} = this;
         emitterStack.add(() => {
             Object.keys(subscribers).forEach((id) => {
                 const subscriber = subscribers[id];
                 if (subscriber) {
-                    subscriber.next(state, previousState);
+                    subscriber.notify(state, previousState);
                 }
             });
         });
@@ -98,6 +107,7 @@ export class StateEmitter<T> {
         this.isSetOnce = false;
         this.state = undefined;
         this.previousState = undefined;
+        this.completed = false;
     }
 
     public get(): T {
@@ -109,17 +119,20 @@ export class StateEmitter<T> {
     }
 
     public subscribe(callback: StateEmitterCallback<T>, context?: Object): ISubscription {
-        const subscriber = {
+        let lastEmittedValue: T;
+        const subscriber: ISubscriber<T> = {
             id: this.subscribersCounter,
             subscribed: true,
-            next: () => {
-                const shouldCall = this.isSetOnce && subscriber.subscribed;
-                if (this.completed) {
-                    unsubscribe();
+            notify: (state, previousState) => {
+                if (!this.isChanged(state, lastEmittedValue)) {
+                    return;
                 }
-
-                if (shouldCall) {
-                    callback.call(context, this.state, this.previousState, subscription);
+                if (this.isSetOnce && subscriber.subscribed) {
+                    if (this.completed) {
+                        unsubscribe();
+                    }
+                    lastEmittedValue = state;
+                    callback.call(context, state, previousState, subscription);
                 }
             }
         };
@@ -130,16 +143,19 @@ export class StateEmitter<T> {
         };
 
         const subscription = {
+            subscriberId: subscriber.id,
             unsubscribe,
-            destroy: unsubscribe
+            destroy: unsubscribe,
         };
 
         this.subscribers[this.subscribersCounter] = subscriber;
 
         this.subscribersCounter += 1;
 
+        const state = this.state;
+        const previousState = this.previousState;
         emitterStack.add(() => {
-            subscriber.next();
+            subscriber.notify(state, previousState);
         });
         return subscription;
     }
@@ -152,13 +168,13 @@ export class StateEmitter<T> {
         if (!this.completed) {
             this.completed = true;
             this.subscribers = {};
-            
+
             if (this.onComplete) {
                 const onComplete = this.onComplete;
                 delete this.onComplete;
 
                 onComplete.call(this);
-            }  
+            }
         }
     }
 
