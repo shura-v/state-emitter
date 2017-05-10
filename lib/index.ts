@@ -4,9 +4,9 @@ import {CallbackStack} from './callback_stack';
 
 const emitterStack = new CallbackStack();
 
-export type StateEmitterCallback<T> = ((state: T,
-                                        previousState?: T,
-                                        subscription?: ISubscription) => void);
+export type ReactiveEmitterCallback<T> = ((state: T,
+                                           previousState?: T,
+                                           subscription?: ISubscription) => void);
 
 export interface ISubscription {
     unsubscribe(): void,
@@ -16,16 +16,16 @@ export interface ISubscription {
 interface ISubscriber<T> {
     subscribed: boolean,
     id: number,
-    notify: StateEmitterCallback<T>
+    notify: ReactiveEmitterCallback<T>
 }
 
-export interface IStateEmitterOptions {
+export interface IReactiveEmitterOptions {
     distinct?: boolean,
     cloneMergeObjectsOnNext?: boolean;
     onComplete?: () => {};
 }
 
-export class StateEmitter<T> {
+export class ReactiveEmitter<T> {
     private subscribersCounter = 0;
     private subscribers: {
         [id: number]: ISubscriber<T>
@@ -38,7 +38,7 @@ export class StateEmitter<T> {
     private cloneMergeObjectsOnNext: boolean;
     private onComplete: () => void;
 
-    constructor(private state?: T, options: IStateEmitterOptions = {}) {
+    constructor(private state?: T, options: IReactiveEmitterOptions = {}) {
         if (state !== undefined) {
             this.isSetOnce = true;
         }
@@ -71,6 +71,7 @@ export class StateEmitter<T> {
         if (!this.isChanged(this.state, state)) {
             return;
         }
+
 
         const arePlainObjects = (this.distinct || this.cloneMergeObjectsOnNext)
             && isPlainObject(state)
@@ -118,7 +119,7 @@ export class StateEmitter<T> {
         return isEqual(state, this.state);
     }
 
-    public subscribe(callback: StateEmitterCallback<T>, context?: Object): ISubscription {
+    public subscribe(callback: ReactiveEmitterCallback<T>, context?: Object): ISubscription {
         let lastEmittedValue: T;
         const subscriber: ISubscriber<T> = {
             id: this.subscribersCounter,
@@ -179,7 +180,7 @@ export class StateEmitter<T> {
     }
 
     public whenEqual(expectedState: T,
-                     callback: StateEmitterCallback<T>): ISubscription {
+                     callback: ReactiveEmitterCallback<T>): ISubscription {
         return this.subscribe((state, previousState) => {
             if (isEqual(state, expectedState)) {
                 callback(state, previousState);
@@ -188,7 +189,7 @@ export class StateEmitter<T> {
     }
 
     public onceEqual(expectedState: T,
-                     callback: StateEmitterCallback<T>): ISubscription {
+                     callback: ReactiveEmitterCallback<T>): ISubscription {
         return this.subscribe((state: T, previousState: T, subscription: ISubscription) => {
             if (isEqual(state, expectedState)) {
                 subscription.unsubscribe();
@@ -198,7 +199,7 @@ export class StateEmitter<T> {
     }
 
     public onSubsetMatch<U extends Partial<T>>(subsetToMatch: U,
-                                               callback: StateEmitterCallback<T>): ISubscription {
+                                               callback: ReactiveEmitterCallback<T>): ISubscription {
         let neverRan = true;
         const shouldRunCallback = (state: T, previousState: T, subscription: ISubscription): boolean => {
             const newStateMatched = state !== undefined
@@ -229,7 +230,7 @@ export class StateEmitter<T> {
     }
 
     public onceExtendsBy<U extends Partial<T>>(expectedStateSubset: U,
-                                               callback: StateEmitterCallback<T>): ISubscription {
+                                               callback: ReactiveEmitterCallback<T>): ISubscription {
         return this.subscribe((state: T, previousState: T, subscription: ISubscription) => {
             if (state !== undefined
                 && Object.keys(expectedStateSubset)
@@ -252,7 +253,7 @@ export class StateEmitter<T> {
     }
 
     public callOnEval(evalFn: (evalValue?: T) => boolean,
-                      callback: StateEmitterCallback<T>): ISubscription {
+                      callback: ReactiveEmitterCallback<T>): ISubscription {
         return this.subscribe((state: T, previousState: T, subscription: ISubscription) => {
             if (evalFn(state)) {
                 callback(state, previousState, subscription);

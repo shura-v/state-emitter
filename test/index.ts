@@ -1,4 +1,4 @@
-import {StateEmitter} from "../lib";
+import {ReactiveEmitter} from "../lib";
 import test from 'ava';
 
 test('should emit new values once subscribed, and should not emit unchanged values if distinct is not false', (t) => {
@@ -6,7 +6,7 @@ test('should emit new values once subscribed, and should not emit unchanged valu
     const callCounts = [1, 1, 2];
 
     allOptions.forEach((options, idx) => {
-        const se = new StateEmitter<number>(0, options);
+        const se = new ReactiveEmitter<number>(0, options);
         let callCount = 0;
         se.subscribe((x) => {
             t.is(x, 0);
@@ -27,7 +27,7 @@ test('should emit merge object values by default, and dont merge those if cloneM
         const objX = {x: true};
         const objY = {y: true};
 
-        const se = new StateEmitter<IObj>(objX, options);
+        const se = new ReactiveEmitter<IObj>(objX, options);
         t.is(true, se.get() === objX);
 
         se.next(objY);
@@ -38,7 +38,7 @@ test('should emit merge object values by default, and dont merge those if cloneM
 
 test('should call onComplete callback if present', (t) => {
     let completeCount = 0;
-    const se = new StateEmitter<number>(0, {
+    const se = new ReactiveEmitter<number>(0, {
         onComplete: () => completeCount++
     });
     
@@ -48,7 +48,7 @@ test('should call onComplete callback if present', (t) => {
 });
 
 test('should emit new values to 2 subscribers', (t) => {
-    const se = new StateEmitter<number>(0);
+    const se = new ReactiveEmitter<number>(0);
     let counter = 0;
     se.subscribe((x) => {
         counter += 1;
@@ -61,7 +61,7 @@ test('should emit new values to 2 subscribers', (t) => {
 });
 
 test('get() should return current value', (t) => {
-    const se = new StateEmitter<number>(0);
+    const se = new ReactiveEmitter<number>(0);
     t.plan(2);
     se.subscribe((x) => {
         t.is(x, 0);
@@ -70,7 +70,7 @@ test('get() should return current value', (t) => {
 });
 
 test('equal()', (t) => {
-    const se = new StateEmitter<number>(0);
+    const se = new ReactiveEmitter<number>(0);
     t.plan(1);
     if (se.equal(1)) {
         t.fail();
@@ -80,7 +80,7 @@ test('equal()', (t) => {
 });
 
 test('reset()', (t) => {
-    const se = new StateEmitter<number>(0);
+    const se = new ReactiveEmitter<number>(0);
     se.reset();
     se.subscribe(() => {
         t.fail();
@@ -88,7 +88,7 @@ test('reset()', (t) => {
 });
 
 test('previous() and get()', (t) => {
-    const se = new StateEmitter<number>(0);
+    const se = new ReactiveEmitter<number>(0);
     se.next(1);
     se.subscribe((state, previousState) => {
         t.is(state, 1);
@@ -99,7 +99,7 @@ test('previous() and get()', (t) => {
 });
 
 test('should notify about values once subscribed', (t) => {
-    const se = new StateEmitter<number>(0);
+    const se = new ReactiveEmitter<number>(0);
     t.plan(1);
     se.subscribe((x) => {
         t.is(x, 0);
@@ -107,7 +107,7 @@ test('should notify about values once subscribed', (t) => {
 });
 
 test('should not emit new values if completed', (t) => {
-    const se = new StateEmitter<number>(0);
+    const se = new ReactiveEmitter<number>(0);
     t.plan(1);
     se.complete();
     se.next(1);
@@ -116,60 +116,60 @@ test('should not emit new values if completed', (t) => {
     });
 });
 
-let stateEmitter: StateEmitter<boolean>;
+let emitter: ReactiveEmitter<boolean>;
 
 test.beforeEach(() => {
-    stateEmitter = new StateEmitter<boolean>();
-    stateEmitter.next(false);
+    emitter = new ReactiveEmitter<boolean>();
+    emitter.next(false);
 });
 
 test('Should call function on true', (t) => {
     t.plan(1);
-    stateEmitter.whenEqual(true, () => {
+    emitter.whenEqual(true, () => {
         t.pass();
     });
-    stateEmitter.next(true);
+    emitter.next(true);
 });
 
 test('Should not call function on false', (t) => {
     t.plan(0);
-    stateEmitter.whenEqual(true, () => {
+    emitter.whenEqual(true, () => {
         t.fail();
     });
-    stateEmitter.next(false);
+    emitter.next(false);
 });
 
 test('Should call function on true three times given multiple state updates', (t) => {
     let counter = 0;
-    stateEmitter.whenEqual(true, () => {
+    emitter.whenEqual(true, () => {
         counter += 1;
     });
     //First state update to true
-    stateEmitter.next(true);
-    stateEmitter.next(false);
+    emitter.next(true);
+    emitter.next(false);
     //Second state update to true
-    stateEmitter.next(true);
-    stateEmitter.next(true);
-    stateEmitter.next(false);
-    stateEmitter.next(false);
-    stateEmitter.next(false);
+    emitter.next(true);
+    emitter.next(true);
+    emitter.next(false);
+    emitter.next(false);
+    emitter.next(false);
     //Third state update to true
-    stateEmitter.next(true);
-    stateEmitter.next(true);
+    emitter.next(true);
+    emitter.next(true);
     t.is(counter, 3);
 });
 
 test('Should call function only once on expected state change', (t) => {
     let counter = 0;
-    stateEmitter.onceEqual(true, () => {
+    emitter.onceEqual(true, () => {
         counter += 1;
     });
     //First state update to true
-    stateEmitter.next(true);
-    stateEmitter.next(false);
+    emitter.next(true);
+    emitter.next(false);
     //Second state update to true
-    stateEmitter.next(true);
-    stateEmitter.next(false);
+    emitter.next(true);
+    emitter.next(false);
     t.is(counter, 1);
 });
 
@@ -180,44 +180,44 @@ interface IConnectedState {
 
 test('Should call function when connected state becomes true', (t) => {
     let counter = 0;
-    const stateEmitter = new StateEmitter<IConnectedState>({
+    const emitter = new ReactiveEmitter<IConnectedState>({
         connected: true,
         reason: 0
     });
-    stateEmitter.next({
+    emitter.next({
         connected: false,
         reason: 1
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 2
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 6
     });
-    stateEmitter.onSubsetMatch({
+    emitter.onSubsetMatch({
         connected: true
     }, () => {
         counter += 1;
     });
-    stateEmitter.next({
+    emitter.next({
         connected: false,
         reason: 2
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 2
     });
-    stateEmitter.next({
+    emitter.next({
         connected: false,
         reason: 1
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 2
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 6
     });
@@ -226,27 +226,27 @@ test('Should call function when connected state becomes true', (t) => {
 
 test('Should call function when connected state is true only once', (t) => {
     let counter = 0;
-    const stateEmitter = new StateEmitter<IConnectedState>();
-    stateEmitter.onceExtendsBy({connected: true}, () => {
+    const emitter = new ReactiveEmitter<IConnectedState>();
+    emitter.onceExtendsBy({connected: true}, () => {
         counter += 1;
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 2
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 3
     });
-    stateEmitter.next({
+    emitter.next({
         connected: false,
         reason: 2
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 2
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 5
     });
@@ -255,15 +255,15 @@ test('Should call function when connected state is true only once', (t) => {
 
 test('callOnEval()', (t) => {
     let counter = 0;
-    const stateEmitter = new StateEmitter<IConnectedState>();
-    stateEmitter.callOnEval((state) => {
+    const emitter = new ReactiveEmitter<IConnectedState>();
+    emitter.callOnEval((state) => {
         if (state.reason === 2) {
             return true;
         }
     }, () => {
         counter += 1;
     })
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 2
     });
@@ -272,22 +272,22 @@ test('callOnEval()', (t) => {
 
 test('callOnEvalOnce()', (t) => {
     let counter = 0;
-    const stateEmitter = new StateEmitter<IConnectedState>();
-    stateEmitter.callOnEvalOnce((state) => {
+    const emitter = new ReactiveEmitter<IConnectedState>();
+    emitter.callOnEvalOnce((state) => {
         if (state.reason === 2) {
             counter += 1;
             return true;
         }
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 2
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 1
     });
-    stateEmitter.next({
+    emitter.next({
         connected: true,
         reason: 2
     });
